@@ -2,9 +2,8 @@ import json
 import copy
 import math
 
-import numpy as np  # contains helpful math functions like numpy.exp()
-# import numpy.random as random  # see numpy.random module
-import random  # alternative to numpy.random module
+import numpy as np
+import random
 import pandas as pd
 
 import matplotlib.pyplot as plt
@@ -87,9 +86,7 @@ class TravelingSalesmanProblem:
         states = []
         
         newState = self.copy()
-
         random.shuffle(newState.path)
-
         states.append(newState)
         
         return states
@@ -135,9 +132,6 @@ class TravelingSalesmanProblem:
             totalDistance += distance
             
         return -1 * totalDistance
-
-alpha = 0.95
-temperature=1e4
 
 def schedule(time):
     return alpha ** time * temperature
