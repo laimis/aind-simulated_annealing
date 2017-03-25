@@ -16,6 +16,7 @@ DISTANCE_EUCLIDIAN = "euclidian"
 DISTANCE_MANHATTAN = "manhattan"
 DISTANCE_NORM = "norm"
 
+LARGE_NUMBER = 2000000
 
 def show_path(path, starting_city, w=12, h=8):
     """Plot a TSP path overlaid on a map of the US States & their capitals."""
@@ -33,7 +34,7 @@ def simulated_annealing(problem, schedule):
     
     current = problem
     
-    for t in range(1, 2000000):
+    for t in range(1, LARGE_NUMBER):
         T = schedule(t)
         
         if T <= 1e-10:
@@ -143,7 +144,7 @@ def run_trials(num_cities, trials, successorMethod, distanceMethod):
     
     results = []
 
-    smallest = 200000
+    smallest = LARGE_NUMBER
     smallestResult = None
 
     for i in range(0,trials):
@@ -162,6 +163,8 @@ def run_trials(num_cities, trials, successorMethod, distanceMethod):
     print("successors method:", successorMethod, "distance method:", distanceMethod, "smallest", smallest)
     print(series.describe())
 
+    return smallestResult
+
 
 map = mpimg.imread("map.png")  # US States & Capitals map
 
@@ -170,14 +173,17 @@ with open('capitals.json', 'r') as capitals_file:
     capitals = json.load(capitals_file)
 
 capitals_list = list(capitals.items())
+starting_city = capitals_list[0]
 
 alpha = 0.95
 temperature=1e6
 
 # results = run_trials(30, 30, SUCCESSOR_METHOD_SWAP, DISTANCE_EUCLIDIAN)
 # results = run_trials(30, 30, SUCCESSOR_METHOD_SWAP, DISTANCE_MANHATTAN)
-results = run_trials(30, 30, SUCCESSOR_METHOD_RANDOM, DISTANCE_EUCLIDIAN)
+# result = run_trials(30, 30, SUCCESSOR_METHOD_RANDOM, DISTANCE_EUCLIDIAN)
 # results = run_trials(30, 30, SUCCESSOR_METHOD_RANDOM, DISTANCE_MANHATTAN)
 # results = run_trials(30, 30, SUCCESSOR_METHOD_RANDOM, DISTANCE_NORM)
 
-# show_path(smallestResult.coords, starting_city)
+result = run_trials(30, 1, SUCCESSOR_METHOD_RANDOM, DISTANCE_EUCLIDIAN)
+
+show_path(result.coords, starting_city)
