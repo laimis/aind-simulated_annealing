@@ -5,26 +5,18 @@ import math
 import numpy as np  # contains helpful math functions like numpy.exp()
 # import numpy.random as random  # see numpy.random module
 import random  # alternative to numpy.random module
+import pandas as pd
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
-NEIGHBOR_METHOD_SWAP = "closestswaped"
-NEIGHBOR_METHOD_RANDOM = "random"
+SUCCESSOR_METHOD_SWAP = "closestswaped"
+SUCCESSOR_METHOD_RANDOM = "random"
 
 DISTANCE_EUCLIDIAN = "euclidian"
 DISTANCE_MANHATTAN = "manhattan"
+DISTANCE_NORM = "norm"
 
-neighborMethod = NEIGHBOR_METHOD_RANDOM
-distanceMethod = DISTANCE_EUCLIDIAN
-
-map = mpimg.imread("map.png")  # US States & Capitals map
-
-# List of 30 US state capitals and corresponding coordinates on the map
-with open('capitals.json', 'r') as capitals_file:
-    capitals = json.load(capitals_file)
-
-capitals_list = list(capitals.items())
 
 def show_path(path, starting_city, w=12, h=8):
     """Plot a TSP path overlaid on a map of the US States & their capitals."""
@@ -65,12 +57,13 @@ def simulated_annealing(problem, schedule):
 
 class TravelingSalesmanProblem:
     
-    def __init__(self, cities):
+    def __init__(self, cities, successorMethod, distanceMethod):
         self.path = copy.deepcopy(cities)
+        self.successorMethod = successorMethod
+        self.distanceMethod = distanceMethod
     
     def copy(self):
-        """Return a copy of the current board state."""
-        new_tsp = TravelingSalesmanProblem(self.path)
+        new_tsp = TravelingSalesmanProblem(self.path, self.successorMethod, self.distanceMethod)
         return new_tsp
     
     @property
@@ -85,7 +78,7 @@ class TravelingSalesmanProblem:
     
     def successors(self):
         
-        if neighborMethod == NEIGHBOR_METHOD_SWAP:
+        if self.successorMethod == SUCCESSOR_METHOD_SWAP:
             return self.__successors_closest_swapped()
         else:
             return self.__successors_random_swap()
@@ -121,6 +114,7 @@ class TravelingSalesmanProblem:
     def get_value(self):
         
         totalDistance = 0
+
         for i in range(0, len(self.coords)):
             p1 = self.coords[i]
             
@@ -129,11 +123,15 @@ class TravelingSalesmanProblem:
             else:
                 p2 = self.coords[i+1]
             
-            if distanceMethod == DISTANCE_EUCLIDIAN:
+            if self.distanceMethod == DISTANCE_EUCLIDIAN:
                 distance = ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
-            else:
+            elif self.distanceMethod == DISTANCE_MANHATTAN:
                 distance = abs(p1[0]-p2[0]) + abs(p1[1] - p2[1])
-            
+            else:
+                pp1 = np.array(p1)
+                pp2 = np.array(p2)
+                distance = np.linalg.norm(pp1-pp2)
+                
             totalDistance += distance
             
         return -1 * totalDistance
@@ -145,33 +143,47 @@ def schedule(time):
     return alpha ** time * temperature
 
 def solve(tsp):
-    return simulated_annealing(capitals_tsp, schedule)
+    return simulated_annealing(tsp, schedule)
 
-num_cities = 30
+def run_trials(num_cities, trials, successorMethod, distanceMethod):
+    
+    results = []
+
+    smallest = 200000
+    smallestResult = None
+
+    for i in range(0,trials):
+        capitals_tsp = TravelingSalesmanProblem(capitals_list[:num_cities], successorMethod, distanceMethod)
+        result = solve(capitals_tsp)
+        value = -result.get_value()
+        
+        results.append(value)
+
+        if value < smallest:
+            smallest = value
+            smallestResult = result
+
+    series = pd.Series(results)
+
+    print("successors method:", successorMethod, "distance method:", distanceMethod, "smallest", smallest)
+    print(series.describe())
+
+
+map = mpimg.imread("map.png")  # US States & Capitals map
+
+# List of 30 US state capitals and corresponding coordinates on the map
+with open('capitals.json', 'r') as capitals_file:
+    capitals = json.load(capitals_file)
+
+capitals_list = list(capitals.items())
+
 alpha = 0.95
 temperature=1e6
-trials = 30
 
-smallest = 200000
-smallestResult = None
+# results = run_trials(30, 30, SUCCESSOR_METHOD_SWAP, DISTANCE_EUCLIDIAN)
+# results = run_trials(30, 30, SUCCESSOR_METHOD_SWAP, DISTANCE_MANHATTAN)
+results = run_trials(30, 30, SUCCESSOR_METHOD_RANDOM, DISTANCE_EUCLIDIAN)
+# results = run_trials(30, 30, SUCCESSOR_METHOD_RANDOM, DISTANCE_MANHATTAN)
+# results = run_trials(30, 30, SUCCESSOR_METHOD_RANDOM, DISTANCE_NORM)
 
-capitals_tsp = TravelingSalesmanProblem(capitals_list[:num_cities])
-starting_city = capitals_list[0]
-print("Initial path value: {:.2f}".format(-capitals_tsp.get_value()))
-# print(capitals_list[:num_cities])  # The start/end point is indicated with a yellow star
-print(capitals_tsp.names)  # The start/end point is indicated with a yellow star
-# show_path(capitals_tsp.coords, starting_city)
-
-for i in range(0,trials):
-    capitals_tsp = TravelingSalesmanProblem(capitals_list[:num_cities])
-    result = solve(capitals_tsp)
-    value = -result.get_value()
-    if value < smallest:
-        smallest = value
-        smallestResult = result
-
-    print("Final path length: {:.2f}".format(value),"index",i)
-    # print(result.names)
-
-print("smallest distance",smallest)
 # show_path(smallestResult.coords, starting_city)
